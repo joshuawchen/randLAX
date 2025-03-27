@@ -1,0 +1,36 @@
+[build-system]
+requires = ["uv_build>=0.5.0"]
+build-backend = "uv_build"
+
+[project]
+name = "randLAX"
+version = "0.1.0"
+description = "Randomized Linear Algebra routines for JAX"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.8"
+authors = [
+  { name = "Joshua Chen", email = "joshuawchen@icloud.com" },
+  { name = "Michael Brennan", email = "mcbrenn@mit.edu" }
+  { name = "Thomas O'Leary-Roseberry", email = "tom.olearyroseberry@utexas.edu " }
+]
+dependencies = [
+    "jax",
+    "jaxlib",
+    "numpy",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "black",
+    "isort",
+    "flake8"
+]
+
+[project.urls]
+Homepage = "https://github.com/joshuawchen/randLAX"
+Repository = "https://github.com/joshuawchen/randLAX"
+
+[tool.uv_build]
+src_dir = "src"
