@@ -11,7 +11,7 @@ license = { file = "LICENSE" }
 requires-python = ">=3.8"
 authors = [
   { name = "Joshua Chen", email = "joshuawchen@icloud.com" },
-  { name = "Michael Brennan", email = "mcbrenn@mit.edu" }
+  { name = "Michael Brennan", email = "mcbrenn@mit.edu" },
   { name = "Thomas O'Leary-Roseberry", email = "tom.olearyroseberry@utexas.edu" }
 ]
 dependencies = [
