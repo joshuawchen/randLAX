@@ -110,13 +110,13 @@ def __power_iteration_cholesky(
         Y = A @ Q,
         Z = solve_triangular(L, Y, lower=True),
         Q_new = solve_triangular(L.T, Z, lower=False).
-    
+
     Args:
         Q: (n, p) initial subspace.
         A: (n, n) matrix.
         L: (n, n) lower-triangular Cholesky factor of B.
         power_iters: Number of power iterations to perform.
-    
+
     Returns:
         Q after applying the power iterations.
     """
@@ -126,9 +126,11 @@ def __power_iteration_cholesky(
         Q = jax.lax.stop_gradient(Q)
     return Q
 
+
 __jitted_power_iteration_cholesky = jax.jit(
     __power_iteration_cholesky, static_argnums=(3,), donate_argnums=(0,)
 )
+
 
 def double_pass_randomized_gen_eigh(
     key: jax.random.PRNGKey,
@@ -196,11 +198,7 @@ def double_pass_randomized_gen_eigh(
 
 
 def double_pass_randomized_eigh(
-    key: jax.random.PRNGKey,
-    A: jnp.ndarray,
-    r: int,
-    p: int,
-    power_iters: int
+    key: jax.random.PRNGKey, A: jnp.ndarray, r: int, p: int, power_iters: int
 ) -> Tuple[jnp.ndarray, jnp.ndarray]:
     """
     Computes the dominant eigenpairs of matrix A using a double-pass

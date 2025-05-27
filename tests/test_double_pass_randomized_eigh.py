@@ -16,7 +16,9 @@ Assumptions:
 import jax
 import jax.numpy as jnp
 import numpy as np
+
 from randlax import double_pass_randomized_eigh
+
 
 def test_small_matrix():
     """
@@ -33,16 +35,13 @@ def test_small_matrix():
     """
     key = jax.random.PRNGKey(0)
     # Define a small symmetric positive-definite matrix.
-    A = jnp.array([[4.0, 1.0],
-                   [1.0, 3.0]])
+    A = jnp.array([[4.0, 1.0], [1.0, 3.0]])
     r = 1
     p = 2
     power_iters = 3
 
     # Compute eigenpairs using the randomized algorithm.
-    comp_eigvals, comp_evecs = double_pass_randomized_eigh(
-        key, A, r, p, power_iters
-    )
+    comp_eigvals, comp_evecs = double_pass_randomized_eigh(key, A, r, p, power_iters)
 
     # Compute "true" eigenpairs using numpy.
     A_np = np.array(A)
@@ -58,7 +57,7 @@ def test_small_matrix():
         true_eigvals[:r],
         rtol=0.05,
         atol=1e-3,
-        err_msg="Eigenvalues do not match for small matrix."
+        err_msg="Eigenvalues do not match for small matrix.",
     )
 
     # Check that the eigenvalue equation residual is small.
@@ -95,9 +94,7 @@ def test_large_matrix():
     X = jax.random.normal(key, (n, n))
     A = X.T @ X + 0.1 * jnp.eye(n)
 
-    comp_eigvals, comp_evecs = double_pass_randomized_eigh(
-        key, A, r, p, power_iters
-    )
+    comp_eigvals, comp_evecs = double_pass_randomized_eigh(key, A, r, p, power_iters)
 
     A_np = np.array(A)
     true_eigvals, true_eigvecs = np.linalg.eigh(A_np)
@@ -112,7 +109,7 @@ def test_large_matrix():
         true_eigvals[:r],
         rtol=0.1,
         atol=1e-2,
-        err_msg="Eigenvalues do not match for large matrix."
+        err_msg="Eigenvalues do not match for large matrix.",
     )
 
     # Check the eigenvalue equation residual for each computed eigenpair.
