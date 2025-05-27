@@ -25,12 +25,11 @@ def __orthonormalize_inner(
     """
 
     def body_fn(_, q):
-        # Mask the first i columns of Q_prev
-        # mask = jnp.arange(Q_prev.shape[1]) < i
-        # Q_masked = Q_prev * mask[None, :]
-        # correction = jnp.einsum("ij,kj,kl,l->i", Q_masked, Q_masked, B, q)
-        Q_masked = Q_prev[:, :i]
-        correction = Q_masked @ (Q_masked.T @ (B @ q))
+        # Compute projections only against first `i` columns, using masking
+        mask = jnp.arange(Q_prev.shape[1]) < i  # shape (r,)
+        proj_coeffs = jnp.einsum("ni,nm,m->i", Q_prev, B, q)  # shape (r,)
+        proj_coeffs = proj_coeffs * mask  # zero out unused projections
+        correction = Q_prev @ proj_coeffs
         return q - correction
 
     return jax.lax.fori_loop(0, iters, body_fn, q)
