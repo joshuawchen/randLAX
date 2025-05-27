@@ -26,9 +26,11 @@ def __orthonormalize_inner(
 
     def body_fn(_, q):
         # Mask the first i columns of Q_prev
-        mask = jnp.arange(Q_prev.shape[1]) < i
-        Q_masked = Q_prev * mask[None, :]
-        correction = jnp.einsum("ij,kj,kl,l->i", Q_masked, Q_masked, B, q)
+        # mask = jnp.arange(Q_prev.shape[1]) < i
+        # Q_masked = Q_prev * mask[None, :]
+        # correction = jnp.einsum("ij,kj,kl,l->i", Q_masked, Q_masked, B, q)
+        Q_masked = Q_prev[:, :i]
+        correction = Q_masked @ (Q_masked.T @ (B @ q))
         return q - correction
 
     return jax.lax.fori_loop(0, iters, body_fn, q)
@@ -119,8 +121,7 @@ def __power_iteration_cholesky(
         Q after applying the power iterations.
     """
     for _ in range(power_iters):
-        Y = A @ Q
-        Z = solve_triangular(L, Y, lower=True)
+        Z = solve_triangular(L, A @ Q, lower=True)
         Q = solve_triangular(L.T, Z, lower=False)
         Q = jax.lax.stop_gradient(Q)
     return Q
@@ -183,9 +184,11 @@ def double_pass_randomized_gen_eigh(
     # Q = jax.random.normal(key, (B.shape[0], p), dtype=A.dtype)
     # Q = __jitted_power_iteration(Q, A, B, power_iters)
     Q = __mgs_b_orthonormalize(Q, B, reorthog_iter=reorthog_iter)
-
+    B_inner = Q.T @ B @ Q
+    assert jnp.allclose(B_inner, jnp.eye(Q.shape[1]), atol=1e-5)
     # Compute the projected matrix T = Qᵀ A Q and perform eigen-decomposition.
     T = jnp.einsum("ia,ij,jb->ab", Q, A, Q)
+    assert jnp.allclose(T, T.T, atol=1e-6)
     evals, evecs = jnp.linalg.eigh(T)
     perm_r = jnp.argsort(evals)[::-1][:r]
 
