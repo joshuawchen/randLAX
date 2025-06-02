@@ -1,4 +1,5 @@
 import jax
+jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 import numpy as np
 
@@ -15,7 +16,7 @@ def test_small_matrix():
 
     # Compute the eigenpairs using your double pass routine
     computed_eigvals, computed_evecs = double_pass_randomized_gen_eigh(
-        key, A, C_inv, r, p, power_iters=2, reorthog_iter=2
+        key, A, C_inv, r, p, power_iters=2, reorthog_iter=1
     )
 
     # Compute true eigenpairs using numpy
@@ -55,7 +56,7 @@ def test_large_matrix():
 
     # Compute the eigenpairs using your double pass routine
     computed_eigvals, computed_evecs = double_pass_randomized_gen_eigh(
-        key, A, C_inv, r, p, power_iters=3, reorthog_iter=5
+        key, A, C_inv, r, p, power_iters=2
     )
 
     # Compute true eigenpairs using numpy
