@@ -2,7 +2,7 @@
 Tests for the double_pass_randomized_eigh algorithm.
 
 Assumptions:
-    - The input matrix A is symmetric. For correct behavior, A should be 
+    - The input matrix A is symmetric. For correct behavior, A should be
       real symmetric (or Hermitian if complex) because jnp.linalg.eigh is used.
     - The algorithm performs QR re-orthonormalization during power iterations,
       ensuring the subspace Q remains (approximately) orthonormal.
@@ -14,6 +14,7 @@ Assumptions:
 """
 
 import jax
+
 jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 import numpy as np
