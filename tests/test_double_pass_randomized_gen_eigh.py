@@ -62,7 +62,7 @@ def test_large_matrix():
 
     # Compute the eigenpairs using your double pass routine
     computed_eigvals, computed_evecs = double_pass_randomized_gen_eigh(
-        key, A, C_inv, r, p, power_iters=2
+        key, A, C_inv, r, p, power_iters=5
     )
 
     # Compute true eigenpairs using numpy
