@@ -57,8 +57,8 @@ def test_small_matrix():
     np.testing.assert_allclose(
         np.array(comp_eigvals),
         true_eigvals[:r],
-        rtol=0.05,
-        atol=1e-3,
+        rtol=1e-3,
+        atol=1e-5,
         err_msg="Eigenvalues do not match for small matrix.",
     )
 
@@ -109,8 +109,8 @@ def test_large_matrix():
     np.testing.assert_allclose(
         np.array(comp_eigvals),
         true_eigvals[:r],
-        rtol=0.1,
-        atol=1e-2,
+        rtol=1e-3,
+        atol=1e-5,
         err_msg="Eigenvalues do not match for large matrix.",
     )
 

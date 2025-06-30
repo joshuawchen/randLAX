@@ -30,13 +30,13 @@ def test_high_dim_ill_condition_non_gen():
         print("GPU not available. Skipping high-dim ill-conditioned test.")
         return
 
-    n = 50000
-    r = 20
-    p = 30
-    power_iters = 5
+    n = 5000
+    r = 500
+    p = 530
+    power_iters = 10
 
     # Create diagonal entries spanning 1 to 1e5 in float32.
-    diag_vals = jnp.logspace(0, 8, n, dtype=jnp.float32)
+    diag_vals = jnp.logspace(0, 8, n, dtype=jnp.float64)
     # Construct A as a dense diagonal matrix.
     A = jnp.diag(diag_vals)
 
@@ -49,7 +49,7 @@ def test_high_dim_ill_condition_non_gen():
     np.testing.assert_allclose(
         np.array(comp_eigvals),
         np.array(true_eigvals),
-        rtol=0.1,
+        rtol=0.01,
         err_msg="High-dim ill-conditioned eigenvalues do not match.",
     )
 

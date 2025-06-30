@@ -1,96 +1,9 @@
 from typing import Tuple
 
 import jax
+jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 from jax.scipy.linalg import solve_triangular
-
-
-def __orthonormalize_inner(
-    q: jnp.ndarray, Q_prev: jnp.ndarray, B: jnp.ndarray, iters: int, i: int
-) -> jnp.ndarray:
-    """
-    Re-orthogonalizes vector q against previously orthonormalized columns in
-    Q_prev using the B-inner product.
-
-    Args:
-        q: (n,) vector to orthonormalize.
-        Q_prev: (n, r) matrix containing already orthonormalized vectors (only
-            the first `i` columns are used).
-        B: (n, n) symmetric positive-definite (SPD) matrix.
-        iters: Number of re-orthogonalization iterations.
-        i: Current index; only the first `i` columns of Q_prev are used.
-
-    Returns:
-        (n,) re-orthogonalized vector.
-    """
-
-    def body_fn(_, q):
-        # Compute projections only against first `i` columns, using masking
-        mask = jnp.arange(Q_prev.shape[1]) < i  # shape (r,)
-        proj_coeffs = jnp.einsum("ni,nm,m->i", Q_prev, B, q)  # shape (r,)
-        proj_coeffs = proj_coeffs * mask  # zero out unused projections
-        correction = Q_prev @ proj_coeffs
-        return q - correction
-
-    return jax.lax.fori_loop(0, iters, body_fn, q)
-
-
-def __orthonormalize_inner_2(
-    q: jnp.ndarray,  # (n,)
-    Q_prev: jnp.ndarray,  # (n, p) with columns 0..(i−1) B-orthonormal, columns i..(p−1)=0
-    B: jnp.ndarray,  # (n, n), SPD
-    i: int,  # current column index (only project onto columns < i)
-) -> jnp.ndarray:
-    eps = jnp.finfo(q.dtype).eps
-
-    # Compute initial B-norm:  t0 = sqrt(qᵀ B q)
-    Bq0 = B @ q
-    t0 = jnp.sqrt(q @ Bq0)
-
-    # Loop state: (q_cur, t_old, t_last, continue_flag)
-    def cond_fn(state):
-        # Continue while the “continue_flag” is True
-        _, _, _, cont = state
-        return cont
-
-    def body_fn(state):
-        q_cur, t_old, _t_last_unused, _cont_unused = state
-
-        # 1) compute raw projections against all p columns, then mask j ≥ i
-        Bq_cur = B @ q_cur
-        raw_coeffs = Q_prev.T @ Bq_cur  # shape (p,)
-        mask = (jnp.arange(Q_prev.shape[1]) < i).astype(q.dtype)  # (p,)
-        proj_coeffs = raw_coeffs * mask
-
-        # 2) subtract off the projections
-        correction = Q_prev @ proj_coeffs  # shape (n,)
-        q_new = q_cur - correction
-
-        # 3) compute new norm: t_new = sqrt(q_new^T B q_new)
-        Bq_new = B @ q_new
-        t_new = jnp.sqrt(q_new @ Bq_new)
-
-        # 4) check Rutishauser criterion:
-        cond = (t_new > t_old * 10.0 * eps) & (t_new < t_old / 10.0)
-
-        # If we exit loop but t_new is `tiny,` force t_new = 0
-        t_new_final = jnp.where((~cond) & (t_new < 10.0 * eps * t_old), 0.0, t_new)
-
-        # Prepare next‐state
-        t_old_next = jnp.where(cond, t_new, t_old)
-        cont_next = cond
-
-        return (q_new, t_old_next, t_new_final, cont_next)
-
-    # Initialize state
-    init_state = (q, t0, t0, True)
-    q_final, t_old_final, t_last_final, _ = jax.lax.while_loop(
-        cond_fn, body_fn, init_state
-    )
-
-    # Normalize or zero‐out if t_last_final == 0
-    q_norm = jnp.where(t_last_final > 0.0, q_final / t_last_final, q_final)
-    return q_norm
 
 
 def __power_iteration(
@@ -149,39 +62,7 @@ __jitted_power_iteration_cholesky = jax.jit(
 )
 
 
-@jax.jit
-def b_cholesky_qr(Q: jnp.ndarray, B: jnp.ndarray) -> jnp.ndarray:
-    """
-    Given
-        Q: (n, p)  — an arbitrary basis whose columns span a subspace
-        B: (n, n)  — SPD
-    returns
-        Q_B: (n, p)  such that  Q_B^T B Q_B = I_p
-
-    Procedure:
-      1. L = chol(B), so B = L L^T.
-      2. Y = L^T @ Q        (shape (n, p)).
-      3. [Qy, Ry] = qr(Y, mode="reduced"), so Qy^T Qy = I_p.
-      4. Q_B = solve(L^T, Qy)  (i.e., Q_B = (L^T)^{-1} Qy).
-    """
-    # 1) Cholesky factor
-    L = jnp.linalg.cholesky(B)  # L is (n,n) lower-triangular, B = L @ L^T
-
-    # 2) Build Y = L^T @ Q  (shape (n, p))
-    Y = L.T @ Q
-
-    # 3) Reduced QR of Y:  Y = Qy @ Ry,  with Qy^T Qy = I_{p}
-    #    `mode="reduced"` ensures Qy has shape (n,p), Ry is (p,p).
-    Qy, Ry = jnp.linalg.qr(Y, mode="reduced")
-
-    # 4) Solve (L^T) X = Qy  ⇒  X = (L^T)^{-1} Qy
-    #    We can just use jnp.linalg.solve for the triangular system.
-    Q_B = jnp.linalg.solve(L.T, Qy)
-
-    return Q_B
-
-
-def __orthonormalize_inner_3(
+def __orthonormalize_inner(
     q: jnp.ndarray,  # shape (n,), dtype=float64
     Q_prev: jnp.ndarray,  # shape (n, p), dtype=float64; first i cols are B-orthonormal
     B: jnp.ndarray,  # shape (n, n), dtype=float64 (SPD)
@@ -281,7 +162,7 @@ def __mgs_b_orthonormalize(
     # For k=1..(p-1), re-orthonormalize against Q_out[:, 0..(k-1)]
     def scan_body(Q_acc, k):
         qk = Q[:, k]
-        qk_orth = __orthonormalize_inner_3(qk, Q_acc, B, k)
+        qk_orth = __orthonormalize_inner(qk, Q_acc, B, k)
         Q_acc = Q_acc.at[:, k].set(qk_orth)
         return Q_acc, None
 
@@ -397,8 +278,9 @@ def double_pass_randomized_eigh(
         Q, _ = jnp.linalg.qr(A @ Q)
 
     # --- Reduced eigen-decomposition ---
-    # Compute the eigen-decomposition of Qᵀ A Q
+    # Compute the eigen-decomposition of Q^T A Q
     evals, evecs = jnp.linalg.eigh(jnp.einsum("ij,jk,kl->il", Q.T, A, Q))
     # Sort eigenvalues in descending order and select the top r
     perm_r = jnp.argsort(evals)[::-1][:r]
+    
     return evals[perm_r], Q @ (evecs[:, perm_r])
